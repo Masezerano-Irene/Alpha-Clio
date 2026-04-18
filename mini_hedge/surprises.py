@@ -431,6 +431,7 @@ def compare_consensus_methods(
     naive_window: int = 3,
     consensus_csv: str = "data/cpi_consensus.csv",
     auto_fetch_consensus: bool = False,
+    include_real: bool = True,
 ) -> pd.DataFrame:
     """
     Run naive, EMA, and real (survey CSV) consensus on the same yield events and compare.
@@ -441,6 +442,9 @@ def compare_consensus_methods(
     fact, not a bug.
 
     Returns a summary DataFrame with columns Method, Span/Window, Total signals, etc.
+
+    ``include_real`` — set False when ``data/cpi_consensus.csv`` is not available to avoid
+    noisy warnings from the ``real`` branch.
     """
     from mini_hedge.prices import yield_around_releases
 
@@ -448,8 +452,9 @@ def compare_consensus_methods(
     events["release_date"] = pd.to_datetime(events["release_date"])
     events["ym"] = events["release_date"].dt.to_period("M")
 
+    methods = ("naive", "ema", "real") if include_real else ("naive", "ema")
     rows = []
-    for method in ("naive", "ema", "real"):
+    for method in methods:
         span_label = (
             Path(consensus_csv).name
             if method == "real"
@@ -735,36 +740,64 @@ def compute_fomc_surprises_scaffold(
 
 if __name__ == "__main__":
     _csv = "data/cpi_consensus.csv"
-    _auto = False
+    _csv_abs = PROJECT_ROOT / _csv
+
+    # Survey-based REAL consensus needs data/cpi_consensus.csv. Try Cleveland Fed once
+    # if missing (needs network); otherwise skip REAL demos without noisy warnings.
+    if not _csv_abs.exists():
+        print(
+            "\nNote: data/cpi_consensus.csv is missing (needed for method='real').\n"
+            "Attempting Cleveland Fed download to build it…"
+        )
+        try:
+            from mini_hedge.fetchers import fetch_cleveland_fed
+
+            fetch_cleveland_fed(save_csv=True, csv_path=_csv_abs)
+            print(f"  ✓  Wrote {_csv_abs}\n")
+        except Exception as exc:
+            print(
+                f"  (Cleveland Fed auto-build failed: {exc})\n"
+                "  REAL consensus will be skipped. You can still use naive/ema, or add the CSV manually.\n"
+            )
+
+    _run_real = _csv_abs.exists()
+    if not _run_real:
+        print(
+            "Skipping REAL consensus in this run — add data/cpi_consensus.csv or fix network, then re-run.\n"
+            "  Docs: https://www.investing.com/economic-calendar/cpi-733\n"
+        )
 
     print("Comparing consensus methods...\n")
-    comparison = compare_consensus_methods(consensus_csv=_csv, auto_fetch_consensus=_auto)
+    comparison = compare_consensus_methods(
+        consensus_csv=_csv,
+        auto_fetch_consensus=False,
+        include_real=_run_real,
+    )
     print(comparison.to_string(index=False))
 
-    for method in ("naive", "ema", "real"):
+    for method in ("naive", "ema") + (("real",) if _run_real else ()):
         print(f"\n--- Latest release ({method.upper()} method) ---")
         try:
             if method == "real":
                 df = compute_surprises(
                     method="real",
                     consensus_csv=_csv,
-                    auto_fetch_consensus=_auto,
+                    auto_fetch_consensus=False,
                 )
             else:
                 df = compute_surprises(method=method)
             print(describe_latest_surprise(df))
         except Exception as exc:
-            warnings.warn(f"Latest release ({method}): {exc}")
             print(f"  (skipped — {exc})")
 
     print("\n--- Signal counts ---")
-    for method in ("naive", "ema", "real"):
+    for method in ("naive", "ema") + (("real",) if _run_real else ()):
         try:
             if method == "real":
                 df = compute_surprises(
                     method="real",
                     consensus_csv=_csv,
-                    auto_fetch_consensus=_auto,
+                    auto_fetch_consensus=False,
                 )
             else:
                 df = compute_surprises(method=method)
@@ -773,5 +806,4 @@ if __name__ == "__main__":
             n = (df["signal"] == 0).sum()
             print(f"  {method.upper():6s}: hot={h}  cool={c}  none={n}")
         except Exception as exc:
-            warnings.warn(f"Signal counts ({method}): {exc}")
             print(f"  {method.upper():6s}: (skipped — {exc})")
