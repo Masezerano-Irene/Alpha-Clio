@@ -1,6 +1,14 @@
 """CLI entry point — commands for fetching and displaying economic data."""
 
 import sys
+from pathlib import Path
+
+# Running this file directly (e.g. PyCharm Run on cli.py) sets sys.path[0] to
+# mini_hedge/, so `import mini_hedge.*` fails. Put repo root on path first.
+_REPO_ROOT = Path(__file__).resolve().parent.parent
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+
 from datetime import datetime
 
 from mini_hedge.config import (
