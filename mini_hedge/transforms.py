@@ -289,12 +289,58 @@ SERIES_MAP = {
 # Series that need daily transforms instead of monthly
 _DAILY_SERIES = {"DGS10", "T10Y2Y", "DFEDTARU"}
 
+
+def _vol_index_snapshot_rows() -> list[dict]:
+    """Latest VIX / MOVE from ``vol_indices`` (Path 3), with 1d and ~252d % change on level."""
+    out = []
+    for ticker, label in (("^VIX", "VIX (CBOE)"), ("^MOVE", "MOVE (ICE Treasury vol)")):
+        try:
+            df = storage.query_vol_index(ticker, last_n=400)
+            if df.empty:
+                out.append({
+                    "Indicator": label,
+                    "Source": "vol_idx",
+                    "Error": "no rows — run: python -m mini_hedge.cli fetch-vol",
+                })
+                continue
+            df = df.sort_values("date").reset_index(drop=True)
+            latest = df.iloc[-1]
+            prev = df.iloc[-2] if len(df) >= 2 else None
+            short = (
+                (float(latest["close"]) / float(prev["close"]) - 1.0) * 100.0
+                if prev is not None
+                else None
+            )
+            long_pct = None
+            if len(df) > 252:
+                c0 = float(df.iloc[-253]["close"])
+                long_pct = (float(latest["close"]) / c0 - 1.0) * 100.0 if c0 else None
+            z = None
+            tail = df["close"].astype(float).iloc[-252:]
+            if len(tail) >= 60 and tail.std() > 0:
+                z = (float(latest["close"]) - tail.mean()) / tail.std()
+            out.append({
+                "Indicator":  label,
+                "Source":     "vol_idx",
+                "As of":      pd.Timestamp(latest["date"]).strftime("%Y-%m-%d"),
+                "Value":      round(float(latest["close"]), 3),
+                "Short Δ%":   round(short, 3) if short is not None else None,
+                "Long Δ%":    round(long_pct, 3) if long_pct is not None else None,
+                "Z-Score":    round(z, 3) if z is not None else None,
+            })
+        except Exception as e:
+            out.append({"Indicator": label, "Source": "vol_idx", "Error": str(e)})
+    return out
+
+
 def signals_snapshot() -> pd.DataFrame:
     """
     Build a one-row-per-series summary table of the latest readings.
 
     Returns the most recent value, short- and long-horizon % changes (MoM/YoY for
     monthly series; 1d / ~252 trading days for daily DGS10), and Z-score.
+
+    Appends **VIX** and **MOVE** (Path 3) from ``vol_indices`` when present.
 
     Usage:
         from mini_hedge.transforms import signals_snapshot
@@ -319,6 +365,7 @@ def signals_snapshot() -> pd.DataFrame:
         except Exception as e:
             rows.append({"Indicator": label, "Source": source, "Error": str(e)})
 
+    rows.extend(_vol_index_snapshot_rows())
     return pd.DataFrame(rows)
 
 

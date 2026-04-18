@@ -75,17 +75,16 @@ def _print_bls(label, series_id, n):  _print_series(label, series_id, "BLS",  n)
 
 def cmd_snapshot():
     """
-    Print the morning briefing table for every series in SERIES_MAP.
+    Print the morning briefing table: FRED/BLS series in SERIES_MAP plus VIX/MOVE (vol_indices).
 
     Reading from the local SQLite database — no API calls needed.
     Run 'python3 scripts/bootstrap_db.py' first if any series are missing.
     """
+    snap = signals_snapshot()
     print(f"\n{'='*68}")
     print(f"  US Economic Snapshot  —  {datetime.today().strftime('%Y-%m-%d %H:%M')}")
-    print(f"  {len(SERIES_MAP)} indicators  |  source: local database")
+    print(f"  {len(snap)} rows  |  macro: SERIES_MAP + vol: VIX/MOVE")
     print(f"{'='*68}")
-
-    snap = signals_snapshot()
 
     if 'Error' in snap.columns:
         ok_rows  = snap[snap['Error'].isna()].drop(columns=['Error'])
@@ -107,12 +106,18 @@ def cmd_snapshot():
             print(f"  {row['Indicator']:<{ind_w}}  {row['Source']:6}  {row['As of']:12}  {val}  {short}  {long_}  {z}")
 
     if not err_rows.empty:
-        print(f"\n  ── Missing series (fetch to add) ──────────────────────────")
+        print(f"\n  ── Missing / empty (fetch to add) ─────────────────────────")
         for _, row in err_rows.iterrows():
-            print(f"  ✗  {row['Indicator']:30s}  not in database — run bootstrap_db.py")
+            hint = row.get("Error", "")
+            if str(row.get("Source")) == "vol_idx":
+                extra = f" ({hint})" if hint else ""
+                print(f"  ✗  {row['Indicator']:30s}  vol_indices{extra}")
+            else:
+                print(f"  ✗  {row['Indicator']:30s}  not in database — run bootstrap_db.py")
 
     print(f"\n  To refresh:  python3 scripts/bootstrap_db.py")
-    print(f"  To add more: edit SERIES_MAP in mini_hedge/transforms.py")
+    print(f"  Vol indices: python -m mini_hedge.cli fetch-vol")
+    print(f"  To add more macro: edit SERIES_MAP in mini_hedge/transforms.py")
     print()
 
 
