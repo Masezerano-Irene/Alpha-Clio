@@ -179,7 +179,8 @@ def main():
 
     cmd = args[0]
     default_n = DEFAULT_DISPLAY_MONTHS if FETCH_FULL_HISTORY else DEFAULT_FETCH_MONTHS
-    n = int(args[1]) if len(args) > 1 else default_n
+    # Only parse [N] for commands that use it. `vol` has its own argument shape.
+    n = int(args[1]) if (len(args) > 1 and args[1].isdigit()) else default_n
 
     if cmd == "fetch-vol":
         if not FRED_API_KEY:
