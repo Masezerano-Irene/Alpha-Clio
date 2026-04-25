@@ -207,6 +207,7 @@ cython_debug/
 .idea/
 anaconda_projects/
 Skills/
+.claude/
 data/econ.db
 data/econ.db-*
 data/*.db
