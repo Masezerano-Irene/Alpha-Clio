@@ -34,7 +34,12 @@ def _normalize(df: pd.DataFrame) -> pd.DataFrame:
 
 def main() -> None:
     ap = argparse.ArgumentParser(description="Merge a vendor/historical FOMC probabilities CSV into data/fomc_probabilities_history.csv")
-    ap.add_argument("input_csv", help="Path to incoming CSV (vendor export)")
+    ap.add_argument(
+        "input_csv",
+        nargs="?",
+        default=str(PROJECT_ROOT / "data" / "fomc_probabilities.csv"),
+        help="Input CSV path (default: data/fomc_probabilities.csv)",
+    )
     ap.add_argument(
         "--dest",
         default=str(PROJECT_ROOT / "data" / "fomc_probabilities_history.csv"),
@@ -42,7 +47,19 @@ def main() -> None:
     )
     args = ap.parse_args()
 
-    inc = _normalize(pd.read_csv(args.input_csv))
+    input_path = Path(args.input_csv)
+    if not input_path.is_absolute():
+        input_path = PROJECT_ROOT / input_path
+    if not input_path.exists():
+        raise FileNotFoundError(
+            f"Input CSV not found: {input_path}\n\n"
+            "Provide a path explicitly, e.g.\n"
+            "  python scripts/ingest_fomc_probabilities_history.py path/to/file.csv\n\n"
+            "Or create data/fomc_probabilities.csv with columns like `date` and `expected_change_pp` "
+            "(or `p_cut25` and `p_hike25`)."
+        )
+
+    inc = _normalize(pd.read_csv(input_path))
     dest = Path(args.dest)
     dest.parent.mkdir(parents=True, exist_ok=True)
 
