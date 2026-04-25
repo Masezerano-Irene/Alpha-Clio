@@ -25,7 +25,12 @@ def _normalize(df: pd.DataFrame) -> pd.DataFrame:
 
 def main() -> None:
     ap = argparse.ArgumentParser(description="Merge vendor/historical NFP release dates into data/nfp_release_calendar_history.csv")
-    ap.add_argument("input_csv")
+    ap.add_argument(
+        "input_csv",
+        nargs="?",
+        default=str(PROJECT_ROOT / "data" / "nfp_release_calendar.csv"),
+        help="Input CSV path (default: data/nfp_release_calendar.csv)",
+    )
     ap.add_argument(
         "--dest",
         default=str(PROJECT_ROOT / "data" / "nfp_release_calendar_history.csv"),
@@ -33,7 +38,18 @@ def main() -> None:
     )
     args = ap.parse_args()
 
-    inc = _normalize(pd.read_csv(args.input_csv))
+    input_path = Path(args.input_csv)
+    if not input_path.is_absolute():
+        input_path = PROJECT_ROOT / input_path
+    if not input_path.exists():
+        raise FileNotFoundError(
+            f"Input CSV not found: {input_path}\n\n"
+            "Provide a path explicitly, e.g.\n"
+            "  python scripts/ingest_nfp_release_calendar_history.py path/to/file.csv\n\n"
+            "Or create data/nfp_release_calendar.csv with columns `date` and `event_date`."
+        )
+
+    inc = _normalize(pd.read_csv(input_path))
     dest = Path(args.dest)
     dest.parent.mkdir(parents=True, exist_ok=True)
 
