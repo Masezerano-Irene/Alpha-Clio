@@ -8,9 +8,7 @@ on or after ``event_date``.
 """
 
 from __future__ import annotations
-
 from typing import Optional
-
 import numpy as np
 import pandas as pd
 
@@ -93,7 +91,9 @@ def tag_events_with_vol(
     move_ticker: str = "^MOVE",
     spy_prices: Optional[pd.DataFrame] = None,
     tlt_prices: Optional[pd.DataFrame] = None,
+    uup_prices: Optional[pd.DataFrame] = None,
     lookback_days: int = 252,
+    vol_percentile_lookback_days: int = 1260,
 ) -> pd.DataFrame:
     """
     Attach pre-event VIX/MOVE (T−1 last close before event) and simple post-event
@@ -102,8 +102,9 @@ def tag_events_with_vol(
     ev = events.copy()
     ev[event_date_col] = pd.to_datetime(ev[event_date_col]).dt.normalize()
 
-    vix = storage.query_vol_index(vix_ticker, days=lookback_days * 3)
-    move = storage.query_vol_index(move_ticker, days=lookback_days * 3)
+    vol_days = int(max(lookback_days, vol_percentile_lookback_days) * 3)
+    vix = storage.query_vol_index(vix_ticker, days=vol_days)
+    move = storage.query_vol_index(move_ticker, days=vol_days)
 
     def _pre_iv(vol_df: pd.DataFrame, e: pd.Timestamp) -> float:
         if vol_df is None or vol_df.empty:
@@ -113,12 +114,32 @@ def tag_events_with_vol(
             return float("nan")
         return float(d.iloc[-1]["close"])
 
+    def _pctile(vol_df: pd.DataFrame, e: pd.Timestamp, val: float) -> float:
+        """Percentile rank of val in the pre-event lookback window (0..1)."""
+        if vol_df is None or vol_df.empty or np.isnan(val):
+            return float("nan")
+        w = vol_df[
+            (vol_df["date"] < e)
+            & (vol_df["date"] >= (e - pd.Timedelta(days=int(vol_percentile_lookback_days))))
+        ]
+        if w.empty:
+            return float("nan")
+        arr = w["close"].astype(float).to_numpy()
+        if len(arr) < 10:
+            return float("nan")
+        return float((arr <= float(val)).mean())
+
     pre_vix, pre_move = [], []
-    rv_spy_0_5, rv_tlt_0_5 = [], []
+    vix_pre_pct, move_pre_pct = [], []
+    rv_spy_0_5, rv_tlt_0_5, rv_uup_0_5 = [], [], []
     for _, row in ev.iterrows():
         e = row[event_date_col]
-        pre_vix.append(_pre_iv(vix, e))
-        pre_move.append(_pre_iv(move, e))
+        v_pre = _pre_iv(vix, e)
+        m_pre = _pre_iv(move, e)
+        pre_vix.append(v_pre)
+        pre_move.append(m_pre)
+        vix_pre_pct.append(_pctile(vix, e, v_pre))
+        move_pre_pct.append(_pctile(move, e, m_pre))
         if spy_prices is not None:
             rv_spy_0_5.append(realized_vol_over_window(spy_prices, e, 0, 5))
         else:
@@ -127,13 +148,22 @@ def tag_events_with_vol(
             rv_tlt_0_5.append(realized_vol_over_window(tlt_prices, e, 0, 5))
         else:
             rv_tlt_0_5.append(float("nan"))
+        if uup_prices is not None:
+            rv_uup_0_5.append(realized_vol_over_window(uup_prices, e, 0, 5))
+        else:
+            rv_uup_0_5.append(float("nan"))
 
     out = ev.copy()
     out["vix_pre"] = pre_vix
     out["move_pre"] = pre_move
+    out["vix_pre_pctile"] = vix_pre_pct
+    out["move_pre_pctile"] = move_pre_pct
     out["rv_spy_h0_h5_ann"] = rv_spy_0_5
     out["rv_tlt_h0_h5_ann"] = rv_tlt_0_5
+    out["rv_uup_h0_h5_ann"] = rv_uup_0_5
     out["vol_miss_spy"] = np.array(rv_spy_0_5) - np.array(pre_vix)
+    out["vol_miss_tlt"] = np.array(rv_tlt_0_5) - np.array(pre_move)
+    out["vol_miss_uup"] = np.array(rv_uup_0_5) - np.array(pre_vix)
     return out
 
 

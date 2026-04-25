@@ -645,7 +645,22 @@ def load_nfp_consensus_csv(filepath: str = "data/nfp_consensus.csv") -> pd.DataF
     df["date"] = pd.to_datetime(df["date"]).dt.normalize()
     if "consensus_nfp_k" not in df.columns:
         raise ValueError("nfp consensus CSV must include column consensus_nfp_k")
-    return df[["date", "consensus_nfp_k"]].sort_values("date").reset_index(drop=True)
+    df = df[["date", "consensus_nfp_k"]]
+
+    hist_path = PROJECT_ROOT / "data" / "nfp_consensus_history.csv"
+    if hist_path.exists() and hist_path.resolve() != path.resolve():
+        h = pd.read_csv(hist_path)
+        if "release_date" in h.columns and "date" not in h.columns:
+            h = h.rename(columns={"release_date": "date"})
+        h["date"] = pd.to_datetime(h["date"]).dt.normalize()
+        if "consensus_nfp_k" not in h.columns:
+            raise ValueError("nfp consensus history CSV must include column consensus_nfp_k")
+        h = h[["date", "consensus_nfp_k"]]
+        # Vendor/historical rows should win on overlaps (place them first).
+        df = pd.concat([h, df], ignore_index=True)
+
+    df = df.drop_duplicates(subset=["date"], keep="first").sort_values("date").reset_index(drop=True)
+    return df
 
 
 def compute_nfp_surprises(
@@ -701,6 +716,9 @@ def compute_nfp_surprises(
 
 def compute_fomc_surprises_scaffold(
     consensus_csv: str = "data/fomc_consensus.csv",
+    probabilities_csv: str = "data/fomc_probabilities.csv",
+    probabilities_history_csv: str = "data/fomc_probabilities_history.csv",
+    consensus_history_csv: str = "data/fomc_consensus_history.csv",
 ) -> pd.DataFrame:
     """
     Minimum-viable FOMC surprise table: target upper bound (DFEDTARU) and its day-to-day change.
@@ -715,23 +733,57 @@ def compute_fomc_surprises_scaffold(
     df = df.rename(columns={"value": "ff_upper_pct"})
     df["actual_change_pp"] = df["ff_upper_pct"].diff()
 
-    path = PROJECT_ROOT / consensus_csv
-    if path.exists():
-        c = pd.read_csv(path)
-        if "release_date" in c.columns and "date" not in c.columns:
-            c = c.rename(columns={"release_date": "date"})
-        c["date"] = pd.to_datetime(c["date"]).dt.normalize()
+    # Prefer probabilities (if present) to derive a continuous expected change.
+    df["consensus_change_pp"] = np.nan
+    df["expected_change_pp"] = np.nan
+
+    def _load_fomc_table(rel: str) -> pd.DataFrame | None:
+        pth = PROJECT_ROOT / rel
+        if not pth.exists():
+            return None
+        t = pd.read_csv(pth)
+        if "release_date" in t.columns and "date" not in t.columns:
+            t = t.rename(columns={"release_date": "date"})
+        if "date" not in t.columns:
+            return None
+        t["date"] = pd.to_datetime(t["date"]).dt.normalize()
+        return t
+
+    p_hist = _load_fomc_table(probabilities_history_csv)
+    p_fwd = _load_fomc_table(probabilities_csv)
+    p_parts = [x for x in (p_hist, p_fwd) if x is not None]
+    if p_parts:
+        p = pd.concat(p_parts, ignore_index=True)
+        if "expected_change_pp" not in p.columns:
+            if "p_cut25" in p.columns and "p_hike25" in p.columns:
+                p["expected_change_pp"] = (-0.25 * p["p_cut25"]) + (0.25 * p["p_hike25"])
+        keep = [c for c in ["date", "expected_change_pp"] if c in p.columns]
+        if "expected_change_pp" in keep:
+            # Historical rows should precede forward rows in concat order; keep first on dupes.
+            p = p.sort_values("date").drop_duplicates(subset=["date"], keep="first")
+            df = df.drop(columns=["expected_change_pp"], errors="ignore")
+            df = df.merge(p[keep], on="date", how="left")
+            df["consensus_change_pp"] = df["expected_change_pp"]
+
+    c_hist = _load_fomc_table(consensus_history_csv)
+    c_fwd = _load_fomc_table(consensus_csv)
+    c_parts = [x for x in (c_hist, c_fwd) if x is not None]
+    if c_parts:
+        c = pd.concat(c_parts, ignore_index=True)
         if "consensus_change_pp" in c.columns:
             c = c[["date", "consensus_change_pp"]]
-            df = df.merge(c, on="date", how="left")
-        else:
-            df["consensus_change_pp"] = np.nan
-    else:
-        df["consensus_change_pp"] = np.nan
+            c = c.sort_values("date").drop_duplicates(subset=["date"], keep="first")
+            df = df.merge(c, on="date", how="left", suffixes=("", "_simple"))
+            df["expected_change_pp"] = df["expected_change_pp"].where(
+                df["expected_change_pp"].notna(), df["consensus_change_pp"]
+            )
 
-    df["surprise_pp"] = df["actual_change_pp"] - df["consensus_change_pp"]
-    # Target changes are usually ≥ 25 bp (0.25 pp); ignore float noise below 0.5 bp.
-    df["meeting_day"] = df["actual_change_pp"].abs() >= 0.005
+    df["surprise_pp"] = df["actual_change_pp"] - df["expected_change_pp"]
+    # Meeting day flag:
+    # - True when the date is in the consensus file (so you can evaluate "hold" surprises too)
+    # - OR when the target actually moved (for history / when consensus is missing).
+    is_listed_meeting = df["expected_change_pp"].notna()
+    df["meeting_day"] = is_listed_meeting | (df["actual_change_pp"].abs() >= 0.005)
     df.attrs["series"] = "FOMC_scaffold"
     return df
 

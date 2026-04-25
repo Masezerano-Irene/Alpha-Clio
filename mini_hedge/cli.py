@@ -27,6 +27,8 @@ Commands:
     snapshot          Morning briefing — latest value, MoM%, YoY%, Z-score
                       for every series in SERIES_MAP (currently {n} indicators)
     fetch             Re-fetch all series from FRED / BLS into the database
+    fetch-consensus   Fetch consensus CSVs for Phase 4 (NFP + FOMC)
+    export-phase3     Export Phase 3 event panel (frozen backtest input)
     cpi [N]           Raw CPI-U history (BLS), last N rows
     core-cpi [N]      Core CPI history (FRED), last N rows
     fed-rate [N]      Fed Funds Rate history (FRED), last N rows
@@ -43,7 +45,6 @@ The snapshot will pick it up automatically.
 
 
 # ── Individual series printers ────────────────────────────────────────────────
-
 def _print_series(label, series_id, source, n):
     """Read from local DB; warn if empty."""
     from mini_hedge import storage
@@ -72,12 +73,11 @@ def _print_bls(label, series_id, n):  _print_series(label, series_id, "BLS",  n)
 
 
 # ── Snapshot — driven entirely by SERIES_MAP ──────────────────────────────────
-
 def cmd_snapshot():
     """
     Print the morning briefing table: FRED/BLS series in SERIES_MAP plus VIX/MOVE (vol_indices).
 
-    Reading from the local SQLite database — no API calls needed.
+    Reading from the local SQLite database — no API calls needed as they are already set.
     Run 'python3 scripts/bootstrap_db.py' first if any series are missing.
     """
     snap = signals_snapshot()
@@ -162,6 +162,51 @@ def cmd_fetch_vol():
     print()
 
 
+def cmd_fetch_consensus():
+    """Fetch NFP and FOMC consensus CSVs used by Phase 4 surprise scaffolding."""
+    print("Fetching consensus datasets (Phase 4)...\n")
+    try:
+        # Long-history release calendar via ALFRED (preferred)
+        df_alf = fetchers.fetch_alfred_nfp_release_calendar_history(save_csv=True)
+        print(f"  ✓  NFP release calendar history (ALFRED)  ({len(df_alf):,} rows)")
+    except Exception as e:
+        print(f"  ✗  NFP release calendar history ERROR: {e}")
+
+    try:
+        df_cal = fetchers.fetch_investing_nfp_release_calendar(save_csv=True)
+        print(f"  ✓  NFP release calendar (Investing.com)  ({len(df_cal):,} rows)")
+    except Exception as e:
+        print(f"  ✗  NFP release calendar ERROR: {e}")
+
+    try:
+        df_nfp = fetchers.fetch_investing_nfp_forecasts(save_csv=True)
+        print(f"  ✓  NFP consensus (Investing.com)  ({len(df_nfp):,} rows)")
+    except Exception as e:
+        print(f"  ✗  NFP consensus ERROR: {e}")
+
+    try:
+        df_fomc = fetchers.fetch_rateprobability_fomc_consensus(save_csv=True)
+        print(f"  ✓  FOMC consensus (rateprobability)  ({len(df_fomc):,} rows)")
+    except Exception as e:
+        print(f"  ✗  FOMC consensus ERROR: {e}")
+
+    try:
+        df_prob = fetchers.fetch_rateprobability_fomc_probabilities(save_csv=True)
+        print(f"  ✓  FOMC probabilities (rateprobability)  ({len(df_prob):,} rows)")
+    except Exception as e:
+        print(f"  ✗  FOMC probabilities ERROR: {e}")
+
+    try:
+        p = fetchers.fetch_atlanta_fed_mpt_histdata_xlsx(save_path="data/mpt_histdata.xlsx")
+        # Use script-based builder (more robust than in-module conversion).
+        import subprocess
+        subprocess.check_call([sys.executable, "scripts/build_fomc_probabilities_history_from_mpt.py"])
+        print(f"  ✓  FOMC probabilities history (Atlanta Fed MPT)")
+    except Exception as e:
+        print(f"  ✗  FOMC probabilities history ERROR: {e}")
+    print()
+
+
 def cmd_vol(ticker: str, n: int):
     """Print last n rows of a vol index from local DB."""
     from mini_hedge import storage
@@ -183,7 +228,6 @@ def cmd_vol(ticker: str, n: int):
 
 
 # ── Main ──────────────────────────────────────────────────────────────────────
-
 def main():
     args = sys.argv[1:]
     if not args:
@@ -218,6 +262,13 @@ def main():
             print("Error: FRED_API_KEY not set. Add it to your .env file.")
             sys.exit(1)
         cmd_fetch()
+
+    elif cmd == "fetch-consensus":
+        cmd_fetch_consensus()
+
+    elif cmd == "export-phase3":
+        from scripts.export_phase3_event_panel import main as _export_main
+        _export_main()
 
     elif cmd == "cpi":          cmd_cpi(n)
     elif cmd == "core-cpi":     cmd_core_cpi(n)
