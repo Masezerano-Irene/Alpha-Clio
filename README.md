@@ -1,5 +1,5 @@
-# Mini Hedge
-Personal macro research stack: pull CPI and rates from FRED/BLS into SQLite, derive MoM/YoY/z-scores and **CPI surprise** signals (naive / EMA / survey CSV consensus), and relate releases to Treasury yield moves for event-style analysis.
+# Clio
+Clio is a personal macro research stack: pull CPI and rates from FRED/BLS into SQLite, derive MoM/YoY/z-scores and **CPI surprise** signals (naive / EMA / survey CSV consensus), and relate releases to Treasury yield moves for event-style analysis.
 **Path 3 (vol + macro):** `^VIX` / `^MOVE` live in a dedicated `vol_indices` table; `transforms.realized_volatility` and IV–RV-style spreads; **NFP** and **FOMC** surprise scaffolding in `surprises.py`; `event_study.py` for window returns and vol tags. See `notebooks/03_market_reactions.ipynb`.
 
 **Stack:** Python, pandas, SQLite, matplotlib, yfinance · Jupyter notebooks for exploration.
