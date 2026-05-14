@@ -18,3 +18,21 @@ python scripts/bootstrap_db.py
 - `notebooks/` — derived signals dashboard  
 - `data/` — local DB (`econ.db`), optional `cpi_consensus.csv`, `nfp_consensus.csv` (columns `date`, `consensus_nfp_k`), optional `fomc_consensus.csv` (`date`, `consensus_change_pp`)  
 This project is under active development.
+
+## Backtesting workflow (verified baseline)
+1. Build/update the event panel:
+```bash
+python3 -m mini_hedge.cli export-phase3
+```
+2. Run the baseline backtest:
+```bash
+python3 -m mini_hedge.cli backtest --train-end 2022-12-31
+```
+
+For resume-safe claims and verification evidence, see `docs/claims_evidence.md`.
+
+Outputs are written to `data/derived/backtests/<run_id>/` and include:
+- `equity_curve.csv`, `daily_returns.csv`, `event_returns.csv`, `trades.csv`
+- `summary_metrics.csv`, `split_metrics.csv`, `sensitivity_grid.csv`
+- `equity_curve.png`, `drawdown_curve.png`, `rolling_sharpe.png`
+- `portfolio_report.md` (generated report with reproducibility command)
