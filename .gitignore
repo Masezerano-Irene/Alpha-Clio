@@ -223,3 +223,14 @@ data/mpt_histdata.xlsx
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Private project assets (kept local)
+data/
+docs/
+.env.*
+*.pem
+*.key
+*.p12
+*.pfx
+credentials.json
+secrets.json

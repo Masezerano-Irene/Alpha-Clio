@@ -29,7 +29,11 @@ python3 -m mini_hedge.cli export-phase3
 python3 -m mini_hedge.cli backtest --train-end 2022-12-31
 ```
 
-For resume-safe claims and verification evidence, see `docs/claims_evidence.md`.
+## Public repository note
+To keep private research material off public GitHub, the `data/` and `docs/` directories are intentionally excluded from version control.
+Reviewers can still evaluate engineering quality from the tracked code (`mini_hedge/`, `scripts/`, tests, and CLI flows) and reproduce pipeline behavior by generating local data with the documented bootstrap/backtest commands.
+Private evidence documents and raw datasets are available separately on request.
+
 
 Outputs are written to `data/derived/backtests/<run_id>/` and include:
 - `equity_curve.csv`, `daily_returns.csv`, `event_returns.csv`, `trades.csv`
