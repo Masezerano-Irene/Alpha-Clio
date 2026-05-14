@@ -1,6 +1,6 @@
 <div align="center">
 
-# ⚡ Alpha Clio
+# Alpha Clio
 
 ### Macro Event Investment Analytics Platform
 
@@ -9,7 +9,7 @@
 [![Data](https://img.shields.io/badge/Data-FRED%20%7C%20BLS%20%7C%20OANDA%20%7C%20Alpaca-2ECC71?style=for-the-badge)](https://github.com/Masezerano-Irene/Alpha-Clio)
 [![License](https://img.shields.io/badge/License-MIT-lightgrey?style=for-the-badge)](https://github.com/Masezerano-Irene/Alpha-Clio)
 
-**[📊 View Live Results Dashboard →](https://masezerano-irene.github.io/Alpha-Clio/)**
+**[View Live Results Dashboard →](https://masezerano-irene.github.io/Alpha-Clio/)**
 
 *A systematic, rules-based investment analytics platform that models the market impact of US macroeconomic releases across five asset classes*
 
@@ -17,7 +17,7 @@
 
 ---
 
-## 📌 What This Project Does
+## What This Project Does
 
 - Built a Python investment analytics platform to model and evaluate macro-driven investment opportunities; automated ingestion of CPI, NFP, and FOMC release data from FRED and BLS into a structured event panel spanning 2009–2026; engineered return calculations and rolling z-score risk metrics across 365+ macro release observations (NFP: 136, CPI: 216), measuring investment performance outcomes across 1-, 2-, and 5-day windows for three asset classes — US Treasuries, equities, and the dollar index.
 
@@ -25,7 +25,7 @@
 
 ---
 
-## 🏆 Key Results
+## Key Results
 
 > All numbers from actual backtest runs on real market data (FRED, BLS, Yahoo Finance).
 
@@ -33,36 +33,36 @@
 
 | Metric | Value |
 |:---|:---|
-| 📅 Backtest period | February 2009 – March 2026 (4,454 trading days) |
-| 🎯 Tradeable signals identified | 107 across full history |
-| 📊 Total events analyzed | 365+ macro releases (NFP: 136, CPI: 216, FOMC: 13) |
-| 📈 Out-of-sample Sharpe | **0.95** (2023–2026 · 16 events) |
-| 💰 Out-of-sample return | **+10%** |
-| 📉 Out-of-sample max drawdown | **−2.2%** (vs ≤ 15% threshold) |
-| 🛡️ Cost safety margin | **12×** (model: 10 bps · ZT actual: 0.79 bps) |
-| 🏛️ Asset classes covered | TLT · EUR/USD · USD/JPY · CL · GC |
+| Backtest period | February 2009 – March 2026 (4,454 trading days) |
+| Tradeable signals identified | 107 across full history |
+| Total events analyzed | 365+ macro releases (NFP: 136, CPI: 216, FOMC: 13) |
+| Out-of-sample Sharpe | **0.95** (2023–2026 · 16 events) |
+| Out-of-sample return | **+10%** |
+| Out-of-sample max drawdown | **−2.2%** (vs ≤ 15% threshold) |
+| Cost safety margin | **12×** (model: 10 bps · ZT actual: 0.79 bps) |
+| Asset classes covered | TLT · EUR/USD · USD/JPY · CL · GC |
 
 </div>
 
 ---
 
-## 🔬 Central Methodological Finding
+## Central Methodological Finding
 
 The initial backtest measured returns at **next-day market close** — introducing a 30-hour gap between the 8:30 ET release and the return measurement point. During that window, unrelated market movements swamped the event signal, producing a near-zero Sharpe ratio (0.089).
 
 ```
-❌ Before:  signal at 08:30 ET → measured at next-day 16:00 ET
-            gap = 30 hours of noise → Sharpe 0.089
+Before:  signal at 08:30 ET → measured at next-day 16:00 ET
+         gap = 30 hours of noise → Sharpe 0.089
 
-✅ After:   signal at 08:30 ET → measured at 08:35 ET
-            window = 5 minutes of pure signal → OOS Sharpe 0.95
+After:   signal at 08:30 ET → measured at 08:35 ET
+         window = 5 minutes of pure signal → OOS Sharpe 0.95
 ```
 
 Redesigning to a **5-minute intraday window** eliminated the confound. This diagnostic and the methodology correction it produced is the central analytical contribution of Phase 1.
 
 ---
 
-## 🏗️ System Architecture
+## System Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -112,7 +112,7 @@ Redesigning to a **5-minute intraday window** eliminated the confound. This diag
 
 ---
 
-## 💼 Portfolio — 5 Instruments, 4 Distinct Factors
+## Portfolio — 5 Instruments, 4 Distinct Factors
 
 <div align="center">
 
@@ -130,31 +130,31 @@ Redesigning to a **5-minute intraday window** eliminated the confound. This diag
 
 ---
 
-## 📅 Event Calendar — 13 Events, ~184 Releases/Year
+## Event Calendar — 13 Events, ~184 Releases/Year
 
 <div align="center">
 
 | Event | Tier | Release ET | Instruments | ~N/yr |
 |:---|:---:|:---:|:---|:---:|
-| Non-Farm Payrolls | 🔴 1 | 08:30 | TLT · EUR/USD · USD/JPY · CL | 12 |
-| CPI | 🔴 1 | 08:30 | TLT · EUR/USD · USD/JPY · GC | 12 |
-| FOMC Rate Decision | 🔴 1 | 14:00 | TLT · EUR/USD · USD/JPY · GC | 8 |
-| PCE Price Index | 🔴 1 | 08:30 | TLT · EUR/USD · USD/JPY · GC | 12 |
-| Initial Jobless Claims | 🟡 2 | 08:30 | TLT · EUR/USD · USD/JPY | 52 |
-| ISM Manufacturing PMI | 🟡 2 | 10:00 | EUR/USD · USD/JPY · CL | 12 |
-| ISM Services PMI | 🟡 2 | 10:00 | EUR/USD · USD/JPY · CL | 12 |
-| Retail Sales | 🟡 2 | 08:30 | TLT · EUR/USD · USD/JPY | 12 |
-| PPI | 🟡 2 | 08:30 | TLT · EUR/USD · USD/JPY · GC | 12 |
-| Housing Starts | ⚪ 3 | 08:30 | EUR/USD · USD/JPY | 12 |
-| Durable Goods | ⚪ 3 | 08:30 | EUR/USD · USD/JPY | 12 |
-| Consumer Confidence | ⚪ 3 | 10:00 | EUR/USD · USD/JPY | 12 |
-| GDP | ⚪ 3 | 08:30 | EUR/USD · USD/JPY · CL | 4 |
+| Non-Farm Payrolls | 1 | 08:30 | TLT · EUR/USD · USD/JPY · CL | 12 |
+| CPI | 1 | 08:30 | TLT · EUR/USD · USD/JPY · GC | 12 |
+| FOMC Rate Decision | 1 | 14:00 | TLT · EUR/USD · USD/JPY · GC | 8 |
+| PCE Price Index | 1 | 08:30 | TLT · EUR/USD · USD/JPY · GC | 12 |
+| Initial Jobless Claims | 2 | 08:30 | TLT · EUR/USD · USD/JPY | 52 |
+| ISM Manufacturing PMI | 2 | 10:00 | EUR/USD · USD/JPY · CL | 12 |
+| ISM Services PMI | 2 | 10:00 | EUR/USD · USD/JPY · CL | 12 |
+| Retail Sales | 2 | 08:30 | TLT · EUR/USD · USD/JPY | 12 |
+| PPI | 2 | 08:30 | TLT · EUR/USD · USD/JPY · GC | 12 |
+| Housing Starts | 3 | 08:30 | EUR/USD · USD/JPY | 12 |
+| Durable Goods | 3 | 08:30 | EUR/USD · USD/JPY | 12 |
+| Consumer Confidence | 3 | 10:00 | EUR/USD · USD/JPY | 12 |
+| GDP | 3 | 08:30 | EUR/USD · USD/JPY · CL | 4 |
 
 </div>
 
 ---
 
-## 🗂️ Project Structure
+## Project Structure
 
 ```
 alpha-clio/
@@ -175,13 +175,13 @@ alpha-clio/
 │   └── 03_market_reactions.ipynb
 ├── scripts/
 │   └── econ.ipynb
-├── index.html                 # 📊 Live results dashboard (GitHub Pages)
+├── index.html                 # Live results dashboard (GitHub Pages)
 └── README.md
 ```
 
 ---
 
-## 📐 Methodology — Step by Step
+## Methodology — Step by Step
 
 ### Step 1 — Surprise Signal Construction
 Economic surprises are normalised using z-scores:
@@ -212,15 +212,15 @@ Every trade is attributed by: instrument, event type, tier, z-score bucket, and 
 
 ---
 
-## 🛡️ Execution Cost Model
+## Execution Cost Model
 
 <div align="center">
 
 | Regime | VIX | Cost (round-trip) | Basis |
 |:---|:---:|:---:|:---|
-| 🟢 Base | < 20 | **10 bps** | Conservative baseline (12× ZT actual) |
-| 🟡 Stress | 25–35 | **15 bps** | Wider spreads in risk-off |
-| 🔴 Panic | > 35 | **20 bps** | Liquidity-adjusted |
+| Base | < 20 | **10 bps** | Conservative baseline (12× ZT actual) |
+| Stress | 25–35 | **15 bps** | Wider spreads in risk-off |
+| Panic | > 35 | **20 bps** | Liquidity-adjusted |
 
 </div>
 
@@ -228,7 +228,7 @@ Every trade is attributed by: instrument, event type, tier, z-score bucket, and 
 
 ---
 
-## ✅ Go / No-Go Validation Gate
+## Go / No-Go Validation Gate
 
 > No criterion can be waived. Paper trading begins only after all five are met.
 
@@ -236,17 +236,17 @@ Every trade is attributed by: instrument, event type, tier, z-score bucket, and 
 
 | Criterion | Threshold | OOS Result | Status |
 |:---|:---:|:---:|:---:|
-| Newey-West Sharpe (holdout) | ≥ 0.50 | **0.95** | ✅ PASS |
-| Maximum drawdown (holdout) | ≤ 15% | **−2.2%** | ✅ PASS |
-| Stress-period expectancy | ≥ 0 bps | Pending Phase 5 | ⏳ |
-| Single-event concentration | ≤ 40% P&L | Pending Phase 5 | ⏳ |
-| Signal log completeness | ≥ 95% | Pending Phase 5 | ⏳ |
+| Newey-West Sharpe (holdout) | ≥ 0.50 | **0.95** | PASS |
+| Maximum drawdown (holdout) | ≤ 15% | **−2.2%** | PASS |
+| Stress-period expectancy | ≥ 0 bps | Pending Phase 5 | Pending |
+| Single-event concentration | ≤ 40% P&L | Pending Phase 5 | Pending |
+| Signal log completeness | ≥ 95% | Pending Phase 5 | Pending |
 
 </div>
 
 ---
 
-## 🗺️ Roadmap
+## Roadmap
 
 - [x] **Phase 0** — Event calendar, signal construction, consensus data collection
 - [x] **Phase 1** — Daily backtest, methodology diagnosis, cost model validation
@@ -259,7 +259,7 @@ Every trade is attributed by: instrument, event type, tier, z-score bucket, and 
 
 ---
 
-## 🔧 Technologies
+## Technologies
 
 <div align="center">
 
@@ -277,7 +277,7 @@ Every trade is attributed by: instrument, event type, tier, z-score bucket, and 
 
 ---
 
-## 🎓 Academic Context
+## Academic Context
 
 Developed alongside graduate coursework at **Brandeis University International Business School** (M.S. Business Analytics):
 
@@ -291,7 +291,7 @@ Developed alongside graduate coursework at **Brandeis University International B
 
 ---
 
-## 👩‍💻 Author
+## Author
 
 <div align="center">
 
