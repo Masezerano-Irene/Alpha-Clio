@@ -58,6 +58,134 @@
 
 ---
 
+## Backtest Charts
+
+> Phase 1 baseline — TLT × CPI events · 5-minute intraday window · February 2009 – March 2026
+
+<div align="center">
+
+| Equity Curve | Drawdown | Rolling Sharpe |
+|:---:|:---:|:---:|
+| ![Equity Curve](assets/equity_curve.png) | ![Drawdown](assets/drawdown_curve.png) | ![Rolling Sharpe](assets/rolling_sharpe.png) |
+
+</div>
+
+*Charts above are from the verified baseline backtest run. Full 5-instrument charts will be added upon completion of Phase 5.*
+
+---
+
+## Code Samples
+
+### Signal Construction — Z-Score Surprise
+
+```python
+import pandas as pd
+
+def compute_surprise_z(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Normalise economic surprise using an expanding-window z-score.
+    No lookahead bias: std is computed only from prior releases.
+
+    df columns: date | actual | consensus
+    """
+    df = df.sort_values("date").copy()
+    df["surprise_raw"] = df["actual"] - df["consensus"]
+
+    # Expanding std: each row uses only past observations
+    df["surprise_std"] = df["surprise_raw"].expanding().std()
+    df["surprise_z"]   = df["surprise_raw"] / df["surprise_std"]
+    return df
+```
+
+### Regime Classifier — VIX Overlay
+
+```python
+from dataclasses import dataclass
+
+VIX_STRESS = 25.0
+VIX_PANIC  = 35.0
+
+# Per-instrument multipliers by regime
+SIZE_MULTS = {
+    "NORMAL": {"TLT": 1.0, "EURUSD": 1.0, "USDJPY": 1.0, "CL": 1.0, "GC": 1.0},
+    "STRESS": {"TLT": 1.0, "EURUSD": 1.0, "USDJPY": 1.5, "CL": 1.0, "GC": 1.0},
+    "PANIC":  {"TLT": 1.0, "EURUSD": 0.5, "USDJPY": 0.0, "CL": 0.0, "GC": 1.0},
+}
+
+def classify_regime(vix: float) -> str:
+    if vix > VIX_PANIC:
+        return "PANIC"
+    elif vix > VIX_STRESS:
+        return "STRESS"
+    return "NORMAL"
+
+def effective_size(instrument: str, base_size: float, vix: float) -> float:
+    regime = classify_regime(vix)
+    return base_size * SIZE_MULTS[regime].get(instrument, 1.0)
+```
+
+### Asymmetric Exit System
+
+```python
+def check_exit(
+    current_ret_bps: float,
+    peak_ret_bps: float,
+    elapsed_seconds: int,
+    max_seconds: int = 300,
+    hard_stop_bps: float = -2.0,
+    trail_pct: float = 0.60,
+    trail_min_peak: float = 1.5,
+) -> tuple[bool, str]:
+    """
+    Returns (exit_flag, reason).
+    All three rules run on every bar simultaneously.
+    """
+    # Rule 1 — Hard stop
+    if elapsed_seconds <= 30 and current_ret_bps < hard_stop_bps:
+        return True, "hard_stop"
+
+    # Rule 2 — High-watermark trail (only activates if peak is meaningful)
+    if peak_ret_bps >= trail_min_peak:
+        trail_threshold = peak_ret_bps * (1 - trail_pct)
+        if current_ret_bps <= trail_threshold:
+            return True, "hwm_trail"
+
+    # Rule 3 — Time exit
+    if elapsed_seconds >= max_seconds:
+        return True, "time_exit"
+
+    return False, ""
+```
+
+### Performance Attribution
+
+```python
+def signal_accuracy_report(trades_df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Hit rate and expectancy sliced by instrument, tier, and VIX regime.
+    hit = 1 if (direction * gross_ret_bps) > 0
+    """
+    trades_df = trades_df.copy()
+    trades_df["hit"] = (
+        trades_df["direction"] * trades_df["gross_ret_bps"] > 0
+    ).astype(int)
+
+    return (
+        trades_df
+        .groupby(["instrument", "tier", "regime"])
+        .agg(
+            n_trades    = ("hit", "count"),
+            hit_rate    = ("hit", "mean"),
+            expectancy  = ("gross_ret_bps", "mean"),
+            sharpe_proxy= ("gross_ret_bps", lambda x: x.mean() / x.std())
+        )
+        .round(3)
+        .reset_index()
+    )
+```
+
+---
+
 ## Central Methodological Finding
 
 The initial backtest measured returns at **next-day market close** — introducing a 30-hour gap between the 8:30 ET release and the return measurement point. During that window, unrelated market movements swamped the event signal, producing a near-zero Sharpe ratio (0.089).
@@ -353,11 +481,11 @@ Developed alongside graduate coursework at **Brandeis University International B
 
 <div align="center">
 
-**Irene Masezerano**
-M.S. Business Analytics — Brandeis University (May 2026)
+**Irene Masezerano** &nbsp;·&nbsp; M.S. Business Analytics — Brandeis University (May 2026)
 
-[![Email](https://img.shields.io/badge/Email-masezirene%40gmail.com-EA4335?style=for-the-badge&logo=gmail&logoColor=white)](mailto:masezirene@gmail.com)
-[![GitHub](https://img.shields.io/badge/GitHub-Masezerano--Irene-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/Masezerano-Irene)
+[![Email](https://img.shields.io/badge/Email-Contact-EA4335?style=for-the-badge&logo=gmail&logoColor=white)](mailto:masezirene@gmail.com)
+[![GitHub](https://img.shields.io/badge/GitHub-Profile-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/Masezerano-Irene)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-Connect-0A66C2?style=for-the-badge&logo=linkedin&logoColor=white)](https://linkedin.com/in/YOUR-LINKEDIN-HANDLE)
 [![Dashboard](https://img.shields.io/badge/Live%20Dashboard-View%20Results-58A6FF?style=for-the-badge)](https://masezerano-irene.github.io/Alpha-Clio/)
 
 </div>
