@@ -485,7 +485,7 @@ Developed alongside graduate coursework at **Brandeis University International B
 
 [![Email](https://img.shields.io/badge/Email-Contact-EA4335?style=for-the-badge&logo=gmail&logoColor=white)](mailto:masezirene@gmail.com)
 [![GitHub](https://img.shields.io/badge/GitHub-Profile-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/Masezerano-Irene)
-[![LinkedIn](https://img.shields.io/badge/LinkedIn-Connect-0A66C2?style=for-the-badge&logo=linkedin&logoColor=white)](https://linkedin.com/in/YOUR-LINKEDIN-HANDLE)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-Connect-0A66C2?style=for-the-badge&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/irene-masezerano-726531224/)
 [![Dashboard](https://img.shields.io/badge/Live%20Dashboard-View%20Results-58A6FF?style=for-the-badge)](https://masezerano-irene.github.io/Alpha-Clio/)
 
 </div>
