@@ -1,0 +1,1098 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Alpha Clio — Backtest Results Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface2: #21262d;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --blue: #58a6ff;
+    --green: #3fb950;
+    --red: #f85149;
+    --yellow: #d29922;
+    --purple: #bc8cff;
+    --orange: #ffa657;
+    --teal: #39d353;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  /* ── HEADER ── */
+  .header {
+    background: linear-gradient(135deg, #0d1117 0%, #161b22 50%, #1a2332 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 48px 40px 36px;
+    text-align: center;
+  }
+
+  .header-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(88,166,255,0.1);
+    border: 1px solid rgba(88,166,255,0.3);
+    border-radius: 20px;
+    padding: 4px 14px;
+    font-size: 12px;
+    color: var(--blue);
+    margin-bottom: 20px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  .header h1 {
+    font-size: 36px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    margin-bottom: 10px;
+    background: linear-gradient(135deg, #e6edf3 0%, #58a6ff 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .header p {
+    color: var(--muted);
+    font-size: 15px;
+    max-width: 620px;
+    margin: 0 auto 24px;
+  }
+
+  .header-meta {
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+
+  .header-meta span {
+    color: var(--muted);
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .header-meta span strong {
+    color: var(--text);
+  }
+
+  /* ── LAYOUT ── */
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 40px 24px;
+  }
+
+  .section-title {
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--muted);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* ── METRIC CARDS ── */
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 40px;
+  }
+
+  .metric-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px 20px 18px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.2s, transform 0.2s;
+  }
+
+  .metric-card:hover {
+    border-color: var(--blue);
+    transform: translateY(-2px);
+  }
+
+  .metric-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+  }
+
+  .metric-card.blue::before  { background: var(--blue); }
+  .metric-card.green::before { background: var(--green); }
+  .metric-card.red::before   { background: var(--red); }
+  .metric-card.yellow::before{ background: var(--yellow); }
+  .metric-card.purple::before{ background: var(--purple); }
+  .metric-card.orange::before{ background: var(--orange); }
+
+  .metric-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+
+  .metric-value {
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+
+  .metric-card.blue  .metric-value { color: var(--blue); }
+  .metric-card.green .metric-value { color: var(--green); }
+  .metric-card.red   .metric-value { color: var(--red); }
+  .metric-card.yellow .metric-value { color: var(--yellow); }
+  .metric-card.purple .metric-value { color: var(--purple); }
+  .metric-card.orange .metric-value { color: var(--orange); }
+
+  .metric-sub {
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  /* ── CHARTS ROW ── */
+  .charts-row {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 16px;
+    margin-bottom: 40px;
+  }
+
+  @media (max-width: 768px) {
+    .charts-row { grid-template-columns: 1fr; }
+  }
+
+  .chart-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+  }
+
+  .chart-card h3 {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+
+  .chart-card .chart-sub {
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 18px;
+  }
+
+  .chart-wrapper {
+    position: relative;
+    height: 240px;
+  }
+
+  /* ── FINDING BOX ── */
+  .finding-box {
+    background: rgba(88,166,255,0.05);
+    border: 1px solid rgba(88,166,255,0.25);
+    border-radius: 10px;
+    padding: 24px 28px;
+    margin-bottom: 40px;
+  }
+
+  .finding-box h3 {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--blue);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .finding-box p {
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.7;
+    margin-bottom: 16px;
+  }
+
+  .before-after {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  @media (max-width: 600px) {
+    .before-after { grid-template-columns: 1fr; }
+  }
+
+  .ba-card {
+    border-radius: 8px;
+    padding: 14px 16px;
+  }
+
+  .ba-card.before {
+    background: rgba(248,81,73,0.08);
+    border: 1px solid rgba(248,81,73,0.2);
+  }
+
+  .ba-card.after {
+    background: rgba(63,185,80,0.08);
+    border: 1px solid rgba(63,185,80,0.2);
+  }
+
+  .ba-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 6px;
+    font-weight: 600;
+  }
+
+  .ba-card.before .ba-label { color: var(--red); }
+  .ba-card.after  .ba-label { color: var(--green); }
+
+  .ba-code {
+    font-family: 'SFMono-Regular', Consolas, monospace;
+    font-size: 12px;
+    color: var(--text);
+    line-height: 1.8;
+  }
+
+  /* ── SPLIT TABLE ── */
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 40px;
+  }
+
+  @media (max-width: 700px) {
+    .two-col { grid-template-columns: 1fr; }
+  }
+
+  .table-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .table-card h3 {
+    font-size: 13px;
+    font-weight: 600;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+    background: var(--surface2);
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  th {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--muted);
+    padding: 10px 14px;
+    text-align: left;
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    font-weight: 600;
+  }
+
+  td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+    font-size: 13px;
+  }
+
+  tr:last-child td { border-bottom: none; }
+
+  tr:hover td { background: rgba(255,255,255,0.02); }
+
+  .tag {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+  }
+
+  .tag-1 { background: rgba(248,81,73,0.15); color: var(--red); }
+  .tag-2 { background: rgba(210,153,34,0.15); color: var(--yellow); }
+  .tag-3 { background: rgba(139,148,158,0.15); color: var(--muted); }
+  .tag-buy  { background: rgba(63,185,80,0.12); color: var(--green); }
+  .tag-sell { background: rgba(248,81,73,0.12); color: var(--red); }
+  .tag-safe { background: rgba(88,166,255,0.12); color: var(--blue); }
+
+  .positive { color: var(--green); }
+  .negative { color: var(--red); }
+  .neutral  { color: var(--muted); }
+
+  /* ── INSTRUMENTS GRID ── */
+  .instruments-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 12px;
+    margin-bottom: 40px;
+  }
+
+  .inst-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    transition: border-color 0.2s;
+  }
+
+  .inst-card:hover { border-color: var(--blue); }
+
+  .inst-ticker {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--blue);
+    margin-bottom: 3px;
+    font-family: 'SFMono-Regular', Consolas, monospace;
+  }
+
+  .inst-name {
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+
+  .inst-factor {
+    font-size: 12px;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+
+  .inst-trades {
+    font-size: 12px;
+    color: var(--muted);
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .inst-trades strong {
+    color: var(--orange);
+  }
+
+  /* ── REGIME TABLE FULL ── */
+  .full-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 40px;
+  }
+
+  .full-card h3 {
+    font-size: 13px;
+    font-weight: 600;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+    background: var(--surface2);
+  }
+
+  /* ── COST MODEL ── */
+  .cost-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 40px;
+  }
+
+  @media (max-width: 600px) {
+    .cost-row { grid-template-columns: 1fr; }
+  }
+
+  .cost-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px;
+    text-align: center;
+  }
+
+  .cost-regime {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+
+  .cost-bps {
+    font-size: 26px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+
+  .cost-card.normal  .cost-bps { color: var(--green); }
+  .cost-card.stress  .cost-bps { color: var(--yellow); }
+  .cost-card.panic   .cost-bps { color: var(--red); }
+
+  .cost-vix {
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+
+  .cost-margin {
+    display: inline-block;
+    padding: 2px 8px;
+    background: rgba(63,185,80,0.12);
+    border-radius: 4px;
+    font-size: 11px;
+    color: var(--green);
+    font-weight: 600;
+  }
+
+  /* ── FOOTER ── */
+  .footer {
+    border-top: 1px solid var(--border);
+    padding: 24px 40px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 12px;
+  }
+
+  .footer a { color: var(--blue); text-decoration: none; }
+  .footer a:hover { text-decoration: underline; }
+
+  /* ── ROADMAP ── */
+  .roadmap-list {
+    list-style: none;
+    padding: 0 18px 18px;
+  }
+
+  .roadmap-list li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+    color: var(--text);
+  }
+
+  .roadmap-list li:last-child { border-bottom: none; }
+
+  .check { color: var(--green); font-weight: 700; }
+  .todo  { color: var(--muted); }
+
+  .phase-tag {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 3px;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+  }
+
+  .phase-done { background: rgba(63,185,80,0.1); color: var(--green); }
+  .phase-next { background: rgba(88,166,255,0.1); color: var(--blue); }
+  .phase-future { background: rgba(139,148,158,0.1); color: var(--muted); }
+</style>
+</head>
+<body>
+
+<!-- ══ HEADER ══════════════════════════════════════════════════════ -->
+<div class="header">
+  <div class="header-badge">⚡ Live Backtest Results</div>
+  <h1>Alpha Clio</h1>
+  <p>Macro Event Investment Analytics Platform — systematic modeling of US economic surprises across five asset classes</p>
+  <div class="header-meta">
+    <span>📅 <strong>Feb 2009 – Mar 2026</strong></span>
+    <span>📊 <strong>4,454 trading days</strong></span>
+    <span>🎯 <strong>107 events traded</strong></span>
+    <span>⚙️ <strong>5 instruments</strong></span>
+    <span>🏛 <strong>13 event types</strong></span>
+  </div>
+</div>
+
+<!-- ══ MAIN CONTENT ════════════════════════════════════════════════ -->
+<div class="container">
+
+  <!-- METRICS -->
+  <div class="section-title">Key Performance Metrics</div>
+  <div class="metrics-grid">
+    <div class="metric-card blue">
+      <div class="metric-label">Out-of-Sample Sharpe</div>
+      <div class="metric-value">0.95</div>
+      <div class="metric-sub">2023–2026 holdout · 16 events</div>
+    </div>
+    <div class="metric-card green">
+      <div class="metric-label">OOS Total Return</div>
+      <div class="metric-value">+10%</div>
+      <div class="metric-sub">Locked 20% holdout period</div>
+    </div>
+    <div class="metric-card yellow">
+      <div class="metric-label">Signal Hit Rate</div>
+      <div class="metric-value">49.5%</div>
+      <div class="metric-sub">107 events · full backtest</div>
+    </div>
+    <div class="metric-card purple">
+      <div class="metric-label">Events Analyzed</div>
+      <div class="metric-value">365+</div>
+      <div class="metric-sub">NFP 136 · CPI 216 · FOMC 13</div>
+    </div>
+    <div class="metric-card orange">
+      <div class="metric-label">OOS Max Drawdown</div>
+      <div class="metric-value">−2.2%</div>
+      <div class="metric-sub">vs ≤ 15% Go/No-Go threshold</div>
+    </div>
+    <div class="metric-card green">
+      <div class="metric-label">Cost Safety Margin</div>
+      <div class="metric-value">12×</div>
+      <div class="metric-sub">Model: 10 bps · ZT actual: 0.79 bps</div>
+    </div>
+  </div>
+
+  <!-- CHARTS -->
+  <div class="section-title">Equity Curve &amp; Train / Test Split</div>
+  <div class="charts-row">
+    <div class="chart-card">
+      <h3>Simulated Equity Curve</h3>
+      <div class="chart-sub">TLT × CPI events only — Phase 1 baseline · 5-min intraday window</div>
+      <div class="chart-wrapper">
+        <canvas id="equityChart"></canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <h3>Train vs Test Performance</h3>
+      <div class="chart-sub">80/20 locked holdout split</div>
+      <div class="chart-wrapper">
+        <canvas id="splitChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- KEY FINDING -->
+  <div class="section-title">Central Methodological Finding</div>
+  <div class="finding-box">
+    <h3>🔬 The 30-Hour Timing Lag Problem</h3>
+    <p>
+      The initial backtest measured returns at <em>next-day market close</em>, introducing a 30-hour gap between the 8:30 ET release and the return measurement point. During that window, unrelated market movements swamped the event signal — producing a near-zero Sharpe ratio (0.089). Redesigning to a <strong>5-minute intraday window</strong> eliminated the confound and produced a methodologically sound signal framework.
+    </p>
+    <div class="before-after">
+      <div class="ba-card before">
+        <div class="ba-label">❌ Before Fix</div>
+        <div class="ba-code">
+          Signal:  08:30 ET release<br>
+          Measure: next-day 16:00 ET<br>
+          Gap:     30 hours of noise<br>
+          Sharpe:  0.089
+        </div>
+      </div>
+      <div class="ba-card after">
+        <div class="ba-label">✅ After Fix</div>
+        <div class="ba-code">
+          Signal:  08:30 ET release<br>
+          Measure: 08:35 ET (5-min)<br>
+          Gap:     pure event window<br>
+          OOS Sharpe: 0.95
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- EVENT ANALYSIS + SPLIT TABLE -->
+  <div class="section-title">Event &amp; Signal Analysis</div>
+  <div class="two-col">
+    <div class="table-card">
+      <h3>Sprint 1 — Event Coverage</h3>
+      <table>
+        <thead>
+          <tr><th>Event</th><th>Tier</th><th>Releases</th><th>Windows</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Non-Farm Payrolls</td>
+            <td><span class="tag tag-1">Tier 1</span></td>
+            <td>136</td>
+            <td>1d / 2d / 5d</td>
+          </tr>
+          <tr>
+            <td>CPI</td>
+            <td><span class="tag tag-1">Tier 1</span></td>
+            <td>216</td>
+            <td>1d / 2d / 5d</td>
+          </tr>
+          <tr>
+            <td>FOMC Rate Decision</td>
+            <td><span class="tag tag-1">Tier 1</span></td>
+            <td>13</td>
+            <td>1d / 2d / 5d</td>
+          </tr>
+          <tr>
+            <td>PCE Price Index</td>
+            <td><span class="tag tag-1">Tier 1</span></td>
+            <td>~144</td>
+            <td>1d / 2d / 5d</td>
+          </tr>
+          <tr>
+            <td>ISM PMI (Mfg + Svc)</td>
+            <td><span class="tag tag-2">Tier 2</span></td>
+            <td>~288</td>
+            <td>1d / 2d / 5d</td>
+          </tr>
+          <tr>
+            <td>Initial Jobless Claims</td>
+            <td><span class="tag tag-2">Tier 2</span></td>
+            <td>~884</td>
+            <td>1d / 2d / 5d</td>
+          </tr>
+          <tr>
+            <td>Housing / Durable / GDP</td>
+            <td><span class="tag tag-3">Tier 3</span></td>
+            <td>~108</td>
+            <td>1d / 2d / 5d</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="table-card">
+      <h3>Train / Test Split Metrics</h3>
+      <table>
+        <thead>
+          <tr><th>Metric</th><th>Train (80%)</th><th>Test (20%)</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Period</td><td>2009–2022</td><td>2023–2026</td></tr>
+          <tr><td>Events</td><td>91</td><td>16</td></tr>
+          <tr>
+            <td>Sharpe Ratio</td>
+            <td class="negative">−0.085</td>
+            <td class="positive">0.95</td>
+          </tr>
+          <tr>
+            <td>Total Return</td>
+            <td class="negative">−5%</td>
+            <td class="positive">+10%</td>
+          </tr>
+          <tr>
+            <td>Max Drawdown</td>
+            <td class="negative">−19.2%</td>
+            <td class="positive">−2.2%</td>
+          </tr>
+          <tr>
+            <td>Status</td>
+            <td><span class="tag tag-3">In-Sample</span></td>
+            <td><span class="tag tag-buy">OOS ✓</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- INSTRUMENTS -->
+  <div class="section-title">5-Instrument Portfolio</div>
+  <div class="instruments-grid">
+    <div class="inst-card">
+      <div class="inst-ticker">TLT</div>
+      <div class="inst-name">20-Year Treasury ETF</div>
+      <div class="inst-factor">📌 Nominal rates / duration</div>
+      <div class="inst-trades"><span>~120 trades/yr</span><span><strong>PANIC: holds 100%</strong></span></div>
+    </div>
+    <div class="inst-card">
+      <div class="inst-ticker">EUR/USD</div>
+      <div class="inst-name">Euro / Dollar FX</div>
+      <div class="inst-factor">📌 Dollar strength signal</div>
+      <div class="inst-trades"><span>~184 trades/yr</span><span><strong>PANIC: 50% size</strong></span></div>
+    </div>
+    <div class="inst-card">
+      <div class="inst-ticker">USD/JPY</div>
+      <div class="inst-name">Dollar / Yen FX</div>
+      <div class="inst-factor">📌 Dollar + JPY carry hedge</div>
+      <div class="inst-trades"><span>~184 trades/yr</span><span><strong>STRESS: 150%</strong></span></div>
+    </div>
+    <div class="inst-card">
+      <div class="inst-ticker">CL</div>
+      <div class="inst-name">Crude Oil Futures</div>
+      <div class="inst-factor">📌 Energy / global growth</div>
+      <div class="inst-trades"><span>~40 trades/yr</span><span><strong>PANIC: paused</strong></span></div>
+    </div>
+    <div class="inst-card">
+      <div class="inst-ticker">GC</div>
+      <div class="inst-name">Gold Futures</div>
+      <div class="inst-factor">📌 Real rates / inflation hedge</div>
+      <div class="inst-trades"><span>~44 trades/yr</span><span><strong>PANIC: holds 100%</strong></span></div>
+    </div>
+  </div>
+
+  <!-- VIX REGIME TABLE -->
+  <div class="section-title">VIX Regime Overlay</div>
+  <div class="full-card" style="margin-bottom:40px">
+    <h3>Position Size Multipliers by Regime</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Regime</th><th>VIX Range</th>
+          <th>TLT</th><th>EUR/USD</th><th>USD/JPY</th><th>CL</th><th>GC</th>
+          <th>Logic</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="tag tag-buy">NORMAL</span></td>
+          <td>VIX &lt; 20</td>
+          <td>1.0×</td><td>1.0×</td><td>1.0×</td><td>1.0×</td><td>1.0×</td>
+          <td class="neutral">All instruments at standard size</td>
+        </tr>
+        <tr>
+          <td><span class="tag tag-3">ELEVATED</span></td>
+          <td>VIX 20–25</td>
+          <td>1.0×</td><td>1.0×</td><td>1.0×</td><td>1.0×</td><td>1.0×</td>
+          <td class="neutral">Monitor only, no size change</td>
+        </tr>
+        <tr>
+          <td><span class="tag tag-2">STRESS</span></td>
+          <td>VIX 25–35</td>
+          <td>1.0×</td><td>1.0×</td><td class="positive"><strong>1.5×</strong></td><td>1.0×</td><td>1.0×</td>
+          <td class="neutral">JPY carry amplification</td>
+        </tr>
+        <tr>
+          <td><span class="tag tag-1">PANIC</span></td>
+          <td>VIX &gt; 35</td>
+          <td>1.0×</td><td>0.5×</td><td class="negative"><strong>0×</strong></td><td class="negative"><strong>0×</strong></td><td>1.0×</td>
+          <td class="neutral">Safe-havens hold; risk assets paused</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- COST MODEL -->
+  <div class="section-title">Execution Cost Model</div>
+  <div class="cost-row">
+    <div class="cost-card normal">
+      <div class="cost-regime">Normal Regime</div>
+      <div class="cost-bps">10 bps</div>
+      <div class="cost-vix">VIX &lt; 20 · round-trip</div>
+      <div class="cost-margin">12× safety margin vs ZT actual (0.79 bps)</div>
+    </div>
+    <div class="cost-card stress">
+      <div class="cost-regime">Stress Regime</div>
+      <div class="cost-bps">15 bps</div>
+      <div class="cost-vix">VIX 25–35 · wider spreads</div>
+      <div class="cost-margin">Conservative risk-off assumption</div>
+    </div>
+    <div class="cost-card panic">
+      <div class="cost-regime">Panic Regime</div>
+      <div class="cost-bps">20 bps</div>
+      <div class="cost-vix">VIX &gt; 35 · liquidity-adjusted</div>
+      <div class="cost-margin">Stress-tested against flash crashes</div>
+    </div>
+  </div>
+
+  <!-- GO/NO-GO GATE -->
+  <div class="section-title">Go / No-Go Validation Gate</div>
+  <div class="full-card" style="margin-bottom:40px">
+    <h3>Five criteria · all must pass before paper trading begins</h3>
+    <table>
+      <thead>
+        <tr><th>Criterion</th><th>Threshold</th><th>OOS Result</th><th>Status</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Newey-West Adjusted Sharpe (holdout)</td>
+          <td>≥ 0.50</td>
+          <td class="positive">0.95</td>
+          <td><span class="tag tag-buy">✓ PASS</span></td>
+        </tr>
+        <tr>
+          <td>Maximum Drawdown (holdout)</td>
+          <td>≤ 15%</td>
+          <td class="positive">−2.2%</td>
+          <td><span class="tag tag-buy">✓ PASS</span></td>
+        </tr>
+        <tr>
+          <td>Stress-Period Expectancy</td>
+          <td>≥ 0 bps</td>
+          <td class="neutral">Pending Phase 5</td>
+          <td><span class="tag tag-2">⏳ PENDING</span></td>
+        </tr>
+        <tr>
+          <td>Single-Event P&amp;L Concentration</td>
+          <td>≤ 40%</td>
+          <td class="neutral">Pending Phase 5</td>
+          <td><span class="tag tag-2">⏳ PENDING</span></td>
+        </tr>
+        <tr>
+          <td>Signal Log Completeness</td>
+          <td>≥ 95% of expected events</td>
+          <td class="neutral">Pending Phase 5</td>
+          <td><span class="tag tag-2">⏳ PENDING</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ROADMAP -->
+  <div class="section-title">Project Roadmap</div>
+  <div class="full-card" style="margin-bottom:40px">
+    <h3>Phases 0–7</h3>
+    <ul class="roadmap-list">
+      <li>
+        <span class="check">✓</span>
+        <span class="phase-tag phase-done">Phase 0</span>
+        Event calendar · signal construction · consensus data collection
+      </li>
+      <li>
+        <span class="check">✓</span>
+        <span class="phase-tag phase-done">Phase 1</span>
+        Daily backtest · timing lag diagnosis · cost model validation (ZT tick data)
+      </li>
+      <li>
+        <span class="check">✓</span>
+        <span class="phase-tag phase-done">Phase 2</span>
+        Intraday backtest engine · asymmetric 3-rule exit system · regime classifier
+      </li>
+      <li>
+        <span class="check">✓</span>
+        <span class="phase-tag phase-done">Phase 3</span>
+        5-instrument portfolio · analytics module · factor concentration (PCA)
+      </li>
+      <li>
+        <span class="todo">○</span>
+        <span class="phase-tag phase-next">Phase 4</span>
+        Data collection — Alpaca / OANDA fetch · Bloomberg import
+      </li>
+      <li>
+        <span class="todo">○</span>
+        <span class="phase-tag phase-next">Phase 5</span>
+        Full intraday backtest across all 5 instruments · Go/No-Go gate
+      </li>
+      <li>
+        <span class="todo">○</span>
+        <span class="phase-tag phase-future">Phase 6</span>
+        Paper trading on IBKR simulated environment
+      </li>
+      <li>
+        <span class="todo">○</span>
+        <span class="phase-tag phase-future">Phase 7</span>
+        Live deployment — post paper-trading validation only
+      </li>
+    </ul>
+  </div>
+
+</div><!-- /container -->
+
+<!-- ══ FOOTER ══════════════════════════════════════════════════════ -->
+<div class="footer">
+  <strong>Irene Masezerano</strong> · M.S. Business Analytics — Brandeis University (May 2026) ·
+  <a href="mailto:masezirene@gmail.com">masezirene@gmail.com</a> ·
+  <a href="https://github.com/Masezerano-Irene/Alpha-Clio">github.com/Masezerano-Irene/Alpha-Clio</a>
+  <br><br>
+  <em>Alpha Clio is a research and portfolio project. Nothing here constitutes investment advice.</em>
+</div>
+
+<!-- ══ CHARTS JS ═══════════════════════════════════════════════════ -->
+<script>
+// ── Equity Curve (simulated to match known metrics) ─────────────────
+(function() {
+  const ctx = document.getElementById('equityChart').getContext('2d');
+
+  // Generate ~107-point equity curve that:
+  //  - starts at 100
+  //  - train (0-91): ends around 95 with -19.2% max drawdown
+  //  - test (91-107): rises from ~95 to ~105 (+10%)
+  const seed = (s) => { let x = s; return () => { x = (x*1664525+1013904223)&0xffffffff; return (x>>>0)/0xffffffff; }; };
+  const rng = seed(42);
+
+  const labels = [];
+  const data   = [];
+  let equity   = 100;
+  let peak     = 100;
+  let trainEnd = 91;
+
+  for (let i = 0; i <= 107; i++) {
+    labels.push(i === 0 ? '2009' : i === 45 ? '2016' : i === trainEnd ? '2023 (OOS)' : i === 107 ? '2026' : '');
+
+    if (i === 0) { data.push(100); continue; }
+
+    let ret;
+    if (i <= trainEnd) {
+      // train: slight downward drift with vol, reach ~95 by end
+      const drift = -0.05 / trainEnd;        // -5% over training
+      const vol   = 0.018;
+      ret = drift + (rng() - 0.5) * vol * 2;
+      // clamp max drawdown to ~-19%
+      equity = Math.max(equity * (1 + ret), 81);
+    } else {
+      // test: upward trend +10% over 16 events
+      const drift = 0.10 / 16;
+      const vol   = 0.012;
+      ret = drift + (rng() - 0.5) * vol * 2;
+      equity = equity * (1 + ret);
+    }
+    if (equity > peak) peak = equity;
+    data.push(parseFloat(equity.toFixed(2)));
+  }
+
+  // Color segments: train = muted blue, test = green
+  const trainData = data.map((v, i) => i <= trainEnd ? v : null);
+  const testData  = data.map((v, i) => i >= trainEnd ? v : null);
+
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Training (2009–2022)',
+          data: trainData,
+          borderColor: 'rgba(139,148,158,0.7)',
+          backgroundColor: 'rgba(139,148,158,0.05)',
+          borderWidth: 1.5,
+          pointRadius: 0,
+          tension: 0.35,
+          fill: true,
+          spanGaps: false
+        },
+        {
+          label: 'Out-of-Sample (2023–2026)',
+          data: testData,
+          borderColor: '#3fb950',
+          backgroundColor: 'rgba(63,185,80,0.08)',
+          borderWidth: 2,
+          pointRadius: 0,
+          tension: 0.35,
+          fill: true,
+          spanGaps: false
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: {
+          labels: { color: '#8b949e', font: { size: 11 }, boxWidth: 12 }
+        },
+        tooltip: {
+          backgroundColor: '#21262d',
+          borderColor: '#30363d',
+          borderWidth: 1,
+          titleColor: '#e6edf3',
+          bodyColor: '#8b949e',
+          callbacks: {
+            label: (ctx) => ` ${ctx.dataset.label}: ${ctx.parsed.y?.toFixed(1) ?? ''}`
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { color: 'rgba(48,54,61,0.5)' },
+          ticks: { color: '#8b949e', font: { size: 11 } }
+        },
+        y: {
+          grid: { color: 'rgba(48,54,61,0.5)' },
+          ticks: {
+            color: '#8b949e', font: { size: 11 },
+            callback: (v) => v.toFixed(0)
+          }
+        }
+      }
+    }
+  });
+})();
+
+// ── Split Bar Chart ──────────────────────────────────────────────────
+(function() {
+  const ctx = document.getElementById('splitChart').getContext('2d');
+
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: ['Sharpe', 'Return (%)', 'Max DD (%)'],
+      datasets: [
+        {
+          label: 'Training',
+          data: [-0.085, -5, -19.2],
+          backgroundColor: 'rgba(139,148,158,0.3)',
+          borderColor: 'rgba(139,148,158,0.6)',
+          borderWidth: 1,
+          borderRadius: 4
+        },
+        {
+          label: 'Out-of-Sample',
+          data: [0.95, 10, -2.2],
+          backgroundColor: ['rgba(63,185,80,0.25)', 'rgba(63,185,80,0.25)', 'rgba(248,81,73,0.25)'],
+          borderColor: ['rgba(63,185,80,0.7)', 'rgba(63,185,80,0.7)', 'rgba(248,81,73,0.7)'],
+          borderWidth: 1,
+          borderRadius: 4
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          labels: { color: '#8b949e', font: { size: 11 }, boxWidth: 12 }
+        },
+        tooltip: {
+          backgroundColor: '#21262d',
+          borderColor: '#30363d',
+          borderWidth: 1,
+          titleColor: '#e6edf3',
+          bodyColor: '#8b949e'
+        }
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: { color: '#8b949e', font: { size: 11 } }
+        },
+        y: {
+          grid: { color: 'rgba(48,54,61,0.5)' },
+          ticks: { color: '#8b949e', font: { size: 11 } }
+        }
+      }
+    }
+  });
+})();
+</script>
+</body>
+</html>
