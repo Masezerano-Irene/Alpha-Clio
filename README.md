@@ -69,8 +69,8 @@ All numbers below are from actual backtest runs on real market data (FRED, BLS, 
 │                      EXIT LAYER                                  │
 │  Rule 1 — Hard Stop  : −2 bps within first 30 seconds          │
 │  Rule 2 — HWM Trail  : 60% giveback from peak (if peak ≥ 1.5)  │
-│  Rule 3 — Time Exit  : max 300s (270s for FOMC)                 │
-│  Test horizons: 3min / 5min / 7min / 10min / 15min              │
+│  Rule 3 — Time Exit  : horizons tested: 3 / 5 / 7 / 10 / 15 min│
+│  (270s cap for FOMC — exits before press conference begins)      │
 └────────────────────────────┬────────────────────────────────────┘
                              │
                              ▼
@@ -176,7 +176,7 @@ Prior-day VIX close is used to classify the market regime before any trade is op
 Entry is placed at the 8:30 ET open bar (or 14:00 for FOMC). Three exit rules run simultaneously on every 1-minute bar:
 1. Hard stop if loss exceeds 2 bps in first 30 seconds
 2. Trail exit if trade retraces 60% from its peak gain
-3. Time exit at 300 seconds (270s for FOMC, before the press conference)
+3. Time exit tested across five horizons: 3, 5, 7, 10, and 15 minutes (270s cap for FOMC, before the press conference)
 
 ### Step 5 — Attribution and Validation
 Every trade is attributed by: instrument, event type, tier, z-score bucket, and VIX regime. Validation uses a locked 20% holdout with Newey-West adjusted t-statistics and block bootstrap confidence intervals for Sharpe ratio.
