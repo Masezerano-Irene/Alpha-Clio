@@ -227,25 +227,6 @@ No criterion can be waived. Paper trading begins only after all five are met.
 
 ---
 
-## Installation
-
-```bash
-git clone https://github.com/YOUR_USERNAME/alpha-clio.git
-cd alpha-clio
-python -m venv .venv
-source .venv/bin/activate          # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
-```
-
-**API credentials** — create a `.env` file in the project root:
-
-```
-ALPACA_API_KEY=your_key
-ALPACA_API_SECRET=your_secret
-OANDA_API_TOKEN=your_token
-OANDA_ACCOUNT_TYPE=practice
-```
-
 ---
 
 ## Data Sources
