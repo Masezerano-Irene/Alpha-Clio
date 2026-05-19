@@ -2,16 +2,24 @@
 
 # Alpha Clio
 
-### Macro Event Investment Analytics Platform
+**Built by Irene Masezerano** &nbsp;·&nbsp; M.S. Business Analytics, Brandeis University (May 2026)
+
+</div>
+
+---
+
+Discretionary trading under pressure produces inconsistent decisions. Alpha Clio is a systematic, rules-based analytics platform I built to remove that judgment from the equation — converting US macroeconomic data releases into structured investment signals across five asset classes, and validating every decision through a formal backtesting and attribution framework.
+
+**Headline result:** Out-of-sample Sharpe of 0.95, +10% return, and −2.2% maximum drawdown on a locked 2023–2026 holdout — with a 12× cost safety margin confirmed against real Treasury futures tick data.
+
+**Start here:** &nbsp;[View the live results dashboard →](https://masezerano-irene.github.io/Alpha-Clio/) &nbsp;·&nbsp; [Jump to key results ↓](#key-results) &nbsp;·&nbsp; [See the code ↓](#project-structure)
+
+<div align="center">
 
 [![Python](https://img.shields.io/badge/Python-3.11%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
 [![Status](https://img.shields.io/badge/Status-Active%20Research-F0A500?style=for-the-badge)](https://github.com/Masezerano-Irene/Alpha-Clio)
 [![Data](https://img.shields.io/badge/Data-FRED%20%7C%20BLS%20%7C%20OANDA%20%7C%20Alpaca-2ECC71?style=for-the-badge)](https://github.com/Masezerano-Irene/Alpha-Clio)
 [![Phase](https://img.shields.io/badge/Phase-3%20of%207%20Complete-58A6FF?style=for-the-badge)](https://github.com/Masezerano-Irene/Alpha-Clio)
-
-**[View Live Results Dashboard →](https://masezerano-irene.github.io/Alpha-Clio/)**
-
-*A systematic, rules-based investment analytics platform that models and evaluates the market impact of US macroeconomic surprises across five asset classes — built as a quantitative research portfolio piece and behavioral-finance discipline framework.*
 
 </div>
 
