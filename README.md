@@ -66,21 +66,20 @@ Discretionary trading under pressure produces inconsistent decisions. Alpha Clio
 
 </div>
 
----
+**Equity curve and rolling Sharpe — Phase 1 baseline (TLT × CPI events · 5-min intraday window · Feb 2009 – Mar 2026):**
 
-## Backtest Charts
+![Equity Curve](assets/equity_curve.png)
 
-> Phase 1 baseline — TLT × CPI events · 5-minute intraday window · February 2009 – March 2026
+![Rolling Sharpe](assets/rolling_sharpe.png)
 
-<div align="center">
+<details>
+<summary>Drawdown curve</summary>
 
-| Equity Curve | Drawdown | Rolling Sharpe |
-|:---:|:---:|:---:|
-| ![Equity Curve](assets/equity_curve.png) | ![Drawdown](assets/drawdown_curve.png) | ![Rolling Sharpe](assets/rolling_sharpe.png) |
+![Drawdown](assets/drawdown_curve.png)
 
-</div>
+</details>
 
-*Charts above are from the verified baseline backtest run. Full 5-instrument charts will be added upon completion of Phase 5.*
+*Charts are from the verified baseline backtest run. Full 5-instrument charts will be added upon completion of Phase 5.*
 
 ---
 
